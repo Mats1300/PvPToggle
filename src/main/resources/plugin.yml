@@ -13,7 +13,11 @@ commands:
   pvp:
     description: Toggle a player's PvP status
     permission: pvp.toggle
-    usage: "/pvp [on/off/list]"
+    usage: |
+           /<command> on - Turns PvP on for the player
+           /<command> on persist - Turns PvP on for the player. This will persist through death.
+           /<command> off - Turns PvP off for the player
+           /<command> list - Lists players with PvP on
 
 permissions:
   pvp.toggle:   

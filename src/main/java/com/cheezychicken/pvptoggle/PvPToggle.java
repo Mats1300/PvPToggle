@@ -20,6 +20,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -40,9 +41,14 @@ public class PvPToggle extends JavaPlugin implements Listener {
     private static final Set<UUID> ENABLED_PLAYERS = new HashSet<>();
 
     /**
+     * Stores the UUIDs of the players with PvP persist enabled.
+     */
+    private static final Set<UUID> PERSISTING_PLAYERS = new HashSet<>();
+
+    /**
      * Stores the Bukkit logger.
      */
-    private Logger logger = Bukkit.getLogger();
+    private final Logger logger = Bukkit.getLogger();
 
     // ------------------------------------------------------------------------------------------------------
 
@@ -87,53 +93,59 @@ public class PvPToggle extends JavaPlugin implements Listener {
         if (command.getName().equalsIgnoreCase("pvp")) {
             if (args.length == 0 || !sender.hasPermission("pvp.toggle")) {
                 return false;
-
             } else {
+                switch (args[0].toUpperCase()) {
+                    case "ON":
+                        if (args.length == 1) {
+                            Player player = (Player) sender;
+                            pvpStatusOn(player, "Player");
+                            return true;
+                        } else if (sender.hasPermission("pvp.others")) {
+                            if (Bukkit.getPlayer(args[1]) == null) return false;
+                            Player player = Bukkit.getPlayer(args[1]);
+                            pvpStatusOn(player, "Admin");
+                            return true;
+                        } else {
+                            return false;
+                        }
 
-                if (args[0].equalsIgnoreCase("on")) {
-                    if (args.length == 1) {
-                        Player player = (Player) sender;
-                        pvpStatusOn(player, "Player");
+                    case "OFF":
+                        if (args.length == 1) {
+                            Player player = (Player) sender;
+                            pvpStatusOff(player, "Player");
+                            return true;
+                            // Admins can change other people's
+                        } else if (sender.hasPermission("pvp.others")) {
+                            if (Bukkit.getPlayer(args[1]) == null) return false;
+                            Player player = Bukkit.getPlayer(args[1]);
+                            pvpStatusOff(player, "Admin");
+                            return true;
+                        } else {
+                            return false;
+                        }
+
+                    case "PERSIST":
+                        PERSISTING_PLAYERS.add(((Player) sender).getUniqueId());
+                        pvpStatusOn(((Player) sender), "Player");
                         return true;
 
-                        // Admins can change other people's
-                    } else if (sender.hasPermission("pvp.others")) {
-                        if (Bukkit.getPlayer(args[1]) == null) return false;
-                        Player player = Bukkit.getPlayer(args[1]);
-                        pvpStatusOn(player, "Admin");
+                    case "LIST":
+                        String playerList = "Players with PvP active: ";
+                        if (ENABLED_PLAYERS.isEmpty()) {
+                            playerList += "None!";
+                        } else {
+                            playerList += ENABLED_PLAYERS.stream()
+                                    .map(getServer()::getPlayer)
+                                    .map(Player::getName)
+                                    .collect(Collectors.joining(", "));
+                        }
+                        sender.sendMessage(playerList);
                         return true;
-                    } else {
+
+                    default:
                         return false;
-                    }
-                } else if (args[0].equalsIgnoreCase("off")) {
-                    if (args.length == 1) {
-                        Player player = (Player) sender;
-                        pvpStatusOff(player, "Player");
-                        return true;
-                        // Admins can change other people's
-                    } else if (sender.hasPermission("pvp.others")) {
-                        if (Bukkit.getPlayer(args[1]) == null) return false;
-                        Player player = Bukkit.getPlayer(args[1]);
-                        pvpStatusOff(player, "Admin");
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } else if (args[0].equalsIgnoreCase("list")) {
-                    String playerList = "Players with PvP active: ";
-                    if (ENABLED_PLAYERS.isEmpty()) {
-                        playerList += "None!";
-                    } else {
-                        playerList += ENABLED_PLAYERS.stream()
-                                .map(getServer()::getPlayer)
-                                .map(Player::getName)
-                                .collect(Collectors.joining(", "));
-                    }
-                    sender.sendMessage(playerList);
-                    return true;
                 }
             }
-            return false;
         }
         return false;
     }
@@ -185,6 +197,9 @@ public class PvPToggle extends JavaPlugin implements Listener {
             } else if (reason == "Admin") {
                 msg = ChatColor.RED + player.getName() + " has had their PvP turned off." + ChatColor.RESET;
             }
+            if(isPersisted(player)) {
+                PERSISTING_PLAYERS.remove(uuid);
+            }
             ENABLED_PLAYERS.remove(uuid);
             if (msg != "") {
                 getServer().broadcastMessage(msg);
@@ -216,11 +231,23 @@ public class PvPToggle extends JavaPlugin implements Listener {
     // ------------------------------------------------------------------------------------------------------
 
     /**
+     * Checks if the player has their PvP on.
      * @param player the player.
      * @return true if the player has pvp on
      */
     public static boolean isActive(Player player) {
         return ENABLED_PLAYERS.contains(player.getUniqueId());
+    }
+
+    // ------------------------------------------------------------------------------------------------------
+
+    /**
+     * Checks if the player has PvP persisting through deaths
+     * @param player the player
+     * @return true if the player has pvp persisting
+     */
+    public static boolean isPersisted(Player player) {
+        return PERSISTING_PLAYERS.contains(player.getUniqueId());
     }
 
     // ------------------------------------------------------------------------------------------------------
@@ -248,7 +275,7 @@ public class PvPToggle extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
-        if (isActive(player)) {
+        if (isActive(player) && !isPersisted(player)) {
             pvpStatusOff(player, "Death");
         }
     }
