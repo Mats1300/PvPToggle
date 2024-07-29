@@ -11,5 +11,5 @@ Permission: pvp.toggle
 - /pvp list - List all players with PvP enabled
 
 Permission: pvp.others
-- /pvp on <player>
-- /pvp off <player>
+- /pvp on \[player] - Enable PvP for the specified player
+- /pvp off \[player] - Disable PvP for the specified player
