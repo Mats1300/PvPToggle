@@ -1,0 +1,22 @@
+name: PvPToggle
+version: ${project.version}
+description: Toggles PvP for people
+
+author: cheezychicken
+website: ${project.url}
+main: com.cheezychicken.pvptoggle.PvPToggle
+api-version: 1.16
+
+depend: [WorldGuard, NametagEdit]
+
+commands:
+  pvp:
+    description: Toggle a player's PvP status
+    permission: pvp.toggle
+    usage: "/pvp [on/off/list]"
+
+permissions:
+  pvp.toggle:   
+    description: Allow use of /pvp command
+  pvp.others:
+    description: Allow users to change pvp status of other people
