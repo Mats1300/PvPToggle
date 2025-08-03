@@ -1,23 +1,19 @@
 name: PvPToggle
-version: ${project.version}
+version: 1.1
 description: Toggles PvP for people
-
-author: cheezychicken
-website: ${project.url}
+author: [Cheezychicken]
+contributor: [Mats1300]
+website: https://github.com/NerdNu/PvPToggle
 main: com.cheezychicken.pvptoggle.PvPToggle
-api-version: 1.16
+api-version: 1.20
 
-depend: [WorldGuard, NametagEdit]
+depend: [WorldGuard, TAB]
 
 commands:
   pvp:
     description: Toggle a player's PvP status
     permission: pvp.toggle
-    usage: |
-           /<command> on - Turns PvP on for the player
-           /<command> on persist - Turns PvP on for the player. This will persist through death.
-           /<command> off - Turns PvP off for the player
-           /<command> list - Lists players with PvP on
+    usage: /pvp [on|off|persist|list]
 
 permissions:
   pvp.toggle:   
