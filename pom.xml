@@ -58,10 +58,5 @@
            <artifactId>guava</artifactId>
            <version>32.0.1-jre</version>
        </dependency>
-       <dependency>
-           <groupId>net.kyori</groupId>
-           <artifactId>adventure-platform-bukkit</artifactId>
-           <version>4.3.4</version>
-       </dependency>
    </dependencies>
 </project>

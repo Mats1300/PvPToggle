@@ -6,7 +6,6 @@ import com.sk89q.worldguard.bukkit.protection.events.DisallowedPVPEvent;
 
 import me.neznamy.tab.api.nametag.NameTagManager;
 import me.neznamy.tab.api.tablist.TabListFormatManager;
-import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -50,14 +49,6 @@ public class PvPToggle extends JavaPlugin implements Listener, TabCompleter, Com
     private final Logger logger = this.getLogger();
 
     /**
-     * Audience provider used to send Adventure text components to players, console, etc.
-     *<p>
-     * Initialized in {@code onEnable()} via {@code BukkitAudiences.create(this)} and
-     * must be closed in {@code onDisable()} to prevent memory leaks.
-     */
-    private  BukkitAudiences adventure;
-
-    /**
      * MiniMessage instance used for deserializing Adventure mini-message strings
      * (e.g., <red>, <bold>, etc.) into formatted components.
      */
@@ -70,7 +61,6 @@ public class PvPToggle extends JavaPlugin implements Listener, TabCompleter, Com
      */
     @Override
     public void onEnable() {
-        this.adventure = BukkitAudiences.create(this);
         this.getServer().getPluginManager().registerEvents(this, this);
 
         Objects.requireNonNull(getCommand("pvp")).setExecutor(this);
@@ -115,10 +105,6 @@ public class PvPToggle extends JavaPlugin implements Listener, TabCompleter, Com
      */
     @Override
     public void onDisable() {
-        if (adventure != null) {
-            adventure.close();
-        }
-
         TabAPI tabAPI = TabAPI.getInstance();
         NameTagManager nameTagManager = tabAPI.getNameTagManager();
         TabListFormatManager tabListManager = tabAPI.getTabListFormatManager();
@@ -190,17 +176,17 @@ public class PvPToggle extends JavaPlugin implements Listener, TabCompleter, Com
                 UUID uuid = player.getUniqueId();
                 if (isPersisted(player)) {
                     PERSISTING_PLAYERS.remove(uuid);
-                    adventure.player(player).sendMessage(miniMessage.deserialize("<gray>Persistent PvP <red>disabled</red>.</gray>"));
+                    player.sendMessage(miniMessage.deserialize("<gray>Persistent PvP <red>disabled</red>.</gray>"));
                     pvpStatusOff(player, "Player");
                 } else {
                     PERSISTING_PLAYERS.add(uuid);
-                    adventure.player(player).sendMessage(miniMessage.deserialize("<gray>Persistent PvP <dark_red>enabled</dark_red>.</gray>"));
+                    player.sendMessage(miniMessage.deserialize("<gray>Persistent PvP <dark_red>enabled</dark_red>.</gray>"));
                     pvpStatusOn(player, "Player");
                 }
                 return true;
             }
             case "LIST" -> {
-                String playerList = ENABLED_PLAYERS.isEmpty()
+                String listMsg = ENABLED_PLAYERS.isEmpty()
                         ? "<gray>Players with PvP active: None!</gray>"
                         : "<gray>Players with PvP active:</gray> <green>" +
                         ENABLED_PLAYERS.stream()
@@ -209,7 +195,7 @@ public class PvPToggle extends JavaPlugin implements Listener, TabCompleter, Com
                                 .map(Player::getName)
                                 .collect(Collectors.joining(", ")) +
                         "</green>";
-                adventure.sender(sender).sendMessage(miniMessage.deserialize(playerList));
+                sender.sendMessage(miniMessage.deserialize(listMsg));
                 return true;
             }
             default -> {
@@ -230,18 +216,15 @@ public class PvPToggle extends JavaPlugin implements Listener, TabCompleter, Com
         UUID uuid = player.getUniqueId();
         if (isActive(player)) {
             if ("Player".equalsIgnoreCase(reason)) {
-                adventure.player(player).sendMessage(miniMessage.deserialize("<red>PvP is already enabled for you!</red>"));
+                player.sendMessage(miniMessage.deserialize("<red>PvP is already enabled for you!</red>"));
             }
             return;
         }
-        String msg = switch (reason.toLowerCase()) {
-            case "player" -> "<red>" + player.getName() + " has turned their PvP on.</red>";
-            case "admin" -> "<red>" + player.getName() + " has had their PvP turned on.</red>";
-            default -> "";
-        };
         ENABLED_PLAYERS.add(uuid);
-        if (!msg.isEmpty()) {
-            adventure.all().sendMessage(miniMessage.deserialize(msg));
+        if ("player".equalsIgnoreCase(reason)) {
+            Bukkit.broadcast(miniMessage.deserialize("<red>" + player.getName() + " has turned their PvP on.</red>"));
+        } else if ("admin".equalsIgnoreCase(reason)) {
+            Bukkit.broadcast(miniMessage.deserialize("<red>" + player.getName() + " has had their PvP turned on.</red>"));
         }
         checkPvPstate(player);
     }
@@ -258,24 +241,22 @@ public class PvPToggle extends JavaPlugin implements Listener, TabCompleter, Com
         UUID uuid = player.getUniqueId();
         if (!isActive(player)) {
             if ("Player".equalsIgnoreCase(reason)) {
-                adventure.player(player).sendMessage(miniMessage.deserialize("<gray>PvP is already disabled for you!</gray>"));
+                player.sendMessage(miniMessage.deserialize("<gray>PvP is already disabled for you!</gray>"));
             }
             return;
         }
-        String msg = switch (reason.toLowerCase()) {
-            case "player" -> "<green>" + player.getName() + " has turned their PvP off.</green>";
-            case "admin" -> "<gray>" + player.getName() + " has had their <color:#aa4700> PvP turned off.</color></gray>";
-            default -> "";
-        };
         if (isPersisted(player)) {
             PERSISTING_PLAYERS.remove(uuid);
         }
         ENABLED_PLAYERS.remove(uuid);
-        if (!msg.isEmpty()) {
-            adventure.all().sendMessage(miniMessage.deserialize(msg));
+        if ("player".equalsIgnoreCase(reason)) {
+            Bukkit.broadcast(miniMessage.deserialize("<green>" + player.getName() + " has turned their PvP off.</green>"));
+        } else if ("admin".equalsIgnoreCase(reason)) {
+            Bukkit.broadcast(miniMessage.deserialize("<gray>" + player.getName() + " has had their <color:#aa4700> PvP turned off.</color></gray>"));
         }
         checkPvPstate(player);
     }
+
 
     // ------------------------------------------------------------------------------------------------------
 
