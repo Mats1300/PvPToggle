@@ -8,6 +8,7 @@ Commands:
 Permission: pvp.toggle
 - /pvp on - Enable PvP for yourself
 - /pvp off - Disable PvP for yourself
+- /pvp persist - Persist PvP though deaths
 - /pvp list - List all players with PvP enabled
 
 Permission: pvp.others
